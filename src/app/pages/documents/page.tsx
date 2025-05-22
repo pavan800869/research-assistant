@@ -1,6 +1,5 @@
 'use client'
-import React from 'react'
-import { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { Document } from '@/app/types/document'
@@ -31,7 +30,8 @@ export default function DocumentsPage(): React.ReactElement {
       const data = await getDocuments()
       setDocuments(data)
       setError(null)
-    } catch (_err) {
+    } catch (error) {
+      console.error('Error fetching documents:', error)
       setError('Failed to fetch documents. Please try again later.')
     } finally {
       setLoading(false)
@@ -42,8 +42,10 @@ export default function DocumentsPage(): React.ReactElement {
     if (window.confirm('Are you sure you want to delete this document?')) {
       try {
         await deleteDocument(id)
-        setDocuments(documents.filter(doc => doc.id !== id))
-      } catch (_err) {
+        // Refresh the documents list after deletion
+        await fetchDocuments()
+      } catch (error) {
+        console.error('Error deleting document:', error)
         setError('Failed to delete document. Please try again later.')
       }
     }
@@ -112,7 +114,7 @@ export default function DocumentsPage(): React.ReactElement {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {documents.map((doc) => (
               <div
-                key={doc.id}
+                key={doc._id}
                 className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition duration-300"
               >
                 <div className="p-6">

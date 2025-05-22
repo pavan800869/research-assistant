@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import clientPromise from '@/lib/mongodb'
-import { ObjectId, GridFSBucket } from 'mongodb'
+import { ObjectId } from 'mongodb'
+import { storeFileInGridFS } from '@/app/lib/multer'
+import { NextRequest } from 'next/server'
+import { Readable } from 'stream'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth()
 
@@ -11,6 +14,7 @@ export async function POST(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
+    // Parse the multipart form data
     const formData = await request.formData()
     const title = formData.get('title') as string
     const description = formData.get('description') as string
@@ -20,30 +24,26 @@ export async function POST(request: Request) {
       return new NextResponse('Missing required fields', { status: 400 })
     }
 
-    // Convert file to buffer
+    // Convert File to Buffer for Multer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Connect to MongoDB
-    const client = await clientPromise
-    const db = client.db()
+    // Create a mock Multer file object
+    const multerFile: Express.Multer.File = {
+      fieldname: 'file',
+      originalname: file.name,
+      encoding: '7bit',
+      mimetype: file.type,
+      buffer,
+      size: buffer.length,
+      destination: '',
+      filename: '',
+      path: '',
+      stream: Readable.from(buffer),
+    }
 
     // Store file in GridFS
-    const bucket = new GridFSBucket(db)
-    const uploadStream = bucket.openUploadStream(file.name, {
-      metadata: {
-        contentType: file.type,
-        userId,
-      },
-    })
-
-    // Write file to GridFS
-    await new Promise((resolve, reject) => {
-      uploadStream.write(buffer, (error) => {
-        if (error) reject(error)
-        else resolve(null)
-      })
-    })
+    const fileId = await storeFileInGridFS(multerFile, userId)
 
     // Create document record
     const document = {
@@ -51,13 +51,15 @@ export async function POST(request: Request) {
       title,
       description,
       userId,
-      fileId: uploadStream.id,
+      fileId: new ObjectId(fileId),
       status: 'processing',
       createdAt: new Date(),
       updatedAt: new Date(),
     }
 
     // Save document metadata
+    const client = await clientPromise
+    const db = client.db()
     await db.collection('documents').insertOne(document)
 
     return NextResponse.json({

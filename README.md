@@ -4,10 +4,10 @@ A Next.js application that helps researchers and students analyze academic paper
 
 ## Features
 
-- 📄 Document Upload: Upload research papers in PDF format
+- 📄 Document Upload: Upload research papers in PDF format using Multer
 - 🤖 AI Analysis: Get instant analysis and insights from your papers
 - 💬 Natural Language Queries: Ask questions about your papers in plain English
-- 🔒 Secure Storage: Your documents are encrypted and stored securely
+- 🔒 Secure Storage: Your documents are encrypted and stored securely in MongoDB GridFS
 - 👤 User Authentication: Secure sign-in and sign-up using Clerk
 - 📱 Responsive Design: Works seamlessly on desktop and mobile devices
 
@@ -16,6 +16,7 @@ A Next.js application that helps researchers and students analyze academic paper
 - **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
 - **Authentication**: Clerk
 - **Database**: MongoDB with GridFS for file storage
+- **File Upload**: Multer for handling file uploads
 - **Styling**: Tailwind CSS with custom configuration
 - **Deployment**: Vercel (recommended)
 
@@ -71,11 +72,22 @@ src/
 │   ├── api/              # API routes
 │   ├── components/       # Reusable components
 │   ├── lib/             # Utility functions and configurations
+│   │   ├── mongodb.ts   # MongoDB connection
+│   │   └── multer.ts    # Multer configuration
 │   ├── pages/           # Page components
 │   └── types/           # TypeScript type definitions
 ├── public/              # Static assets
 └── styles/             # Global styles
 ```
+
+## File Upload Configuration
+
+The application uses Multer for handling file uploads with the following configuration:
+
+- File size limit: 10MB
+- Allowed file types: PDF only
+- Storage: Memory storage (files are processed in memory before being stored in GridFS)
+- File metadata: Includes user ID and content type
 
 ## Environment Variables
 
@@ -95,7 +107,7 @@ src/
 
 ## API Routes
 
-- `POST /api/documents/upload`: Upload a new document
+- `POST /api/documents/upload`: Upload a new document (uses Multer for file handling)
 - `GET /api/documents`: Fetch all documents for the authenticated user
 - `GET /api/documents/[id]`: Fetch a specific document
 - `DELETE /api/documents/[id]`: Delete a document
@@ -114,7 +126,7 @@ The application uses Clerk for authentication. Protected routes are handled thro
   title: string,
   description?: string,
   userId: string,
-  fileId: ObjectId,
+  fileId: ObjectId,  // Reference to GridFS file
   status: 'processing' | 'completed' | 'failed',
   createdAt: Date,
   updatedAt: Date
@@ -142,4 +154,5 @@ For support, email support@research-assistant.com or open an issue in the reposi
 - [Next.js](https://nextjs.org/)
 - [Clerk](https://clerk.dev/)
 - [MongoDB](https://www.mongodb.com/)
+- [Multer](https://github.com/expressjs/multer)
 - [Tailwind CSS](https://tailwindcss.com/)
